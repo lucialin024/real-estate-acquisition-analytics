@@ -1,4 +1,20 @@
+
+# Python environment
 .venv/
 __pycache__/
+*.pyc
+
+# macOS
 .DS_Store
+
+# Sensitive configuration
 .env
+.env.*
+.streamlit/secrets.toml
+
+# Local SQLite databases
+*.db
+*.sqlite3
+
+# Dashboard backup
+dashboard/app_backup.py
