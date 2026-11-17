@@ -1,15 +1,21 @@
 
-# Real Estate Acquisition & IRR Analytics Platform
+# Real Estate Acquisition & Investment Analytics Platform
 
-### Interactive Real Estate Investment Underwriting Dashboard
+### Interactive Real Estate Underwriting, DCF & Debt Financing Dashboard
 
-An end-to-end financial analytics platform that integrates
-Python, SQL, financial modeling, and interactive visualization
-to evaluate Build-for-Rent (BFR) acquisition opportunities.
+An end-to-end financial analytics platform built with Python,
+SQL, and Streamlit to evaluate hypothetical Build-for-Rent (BFR)
+real estate acquisitions.
 
-**Tech Stack:** Python · SQL · Pandas · SQLite · NumPy Financial · Plotly · Streamlit
+The platform integrates property-level financial analysis,
+SQL-based acquisition screening, discounted cash flow (DCF)
+modeling, debt financing, and sensitivity analysis to support
+data-driven investment decisions.
 
-**[Launch Live Dashboard](https://real-estate-irr-analytics.streamlit.app/)** | **[View Source Code](https://github.com/lucialin024/real-estate-acquisition-analytics)**
+**Tech Stack:** Python | SQL | SQLite | Pandas | NumPy Financial | Plotly | Streamlit
+
+**[Launch Live Dashboard](https://real-estate-irr-analytics.streamlit.app/)** |
+**[View Source Code](https://github.com/lucialin024/real-estate-acquisition-analytics)**
 
 ---
 
@@ -17,76 +23,100 @@ to evaluate Build-for-Rent (BFR) acquisition opportunities.
 
 ![Real Estate Investment Dashboard](assets/dashboard_overview.png)
 
-Explore the interactive dashboard to select investment properties,
-adjust underwriting assumptions, and analyze projected returns.
+The interactive dashboard allows users to select an acquisition,
+adjust underwriting and financing assumptions, evaluate projected
+returns, and assess investment risk.
 
 ---
 
 ## Project Overview
 
-This project simulates real estate investment underwriting using
-synthetic property-level data from five hypothetical Build-for-Rent
-acquisition opportunities across Arizona.
+This project simulates real estate acquisition underwriting
+using synthetic property-level data from five hypothetical
+Build-for-Rent investment opportunities across Arizona.
 
-The platform combines financial analysis, SQL-based acquisition
-screening, multi-year cash flow forecasting, and investment
-sensitivity analysis to support data-driven decision-making.
+It combines financial modeling, SQL analysis, and interactive
+visualization to evaluate investment profitability, financing
+structure, and downside risk.
 
 ### Business Questions
 
-- Which acquisition opportunities meet predefined investment criteria?
-- How do property acquisition prices compare with operating income?
+- Which properties meet predefined acquisition criteria?
 - What are the projected IRR, NPV, and investment multiples?
-- How do NOI growth and exit cap rate assumptions affect returns?
-- Which investment scenarios meet the required rate of return?
+- How do operating assumptions affect property valuations?
+- How does debt financing influence equity returns?
+- Can projected NOI adequately cover debt obligations?
+- How do changes in interest rates affect levered IRR and DSCR?
+- When does leverage improve or reduce investment returns?
 
 ---
 
 ## Key Features
 
-### 1. Acquisition Screening & Ranking
+### 1. Acquisition Screening & SQL Analytics
 
-- Calculate acquisition price per rental unit
-- Evaluate gross rental yield and going-in cap rates
-- Screen investments by acquisition price, vacancy rate, and cap rate
-- Rank qualified acquisitions by financial performance
-- Generate investment portfolio summaries
+- Analyze property-level rental and financial data
+- Calculate acquisition price per unit and capitalization rates
+- Screen acquisitions using predefined financial criteria
+- Use SQL queries and Common Table Expressions (CTEs)
+- Generate property-level and portfolio-level summaries
 
 ### 2. Real Estate Financial Underwriting
 
 - Calculate gross and effective rental income
 - Estimate annual Net Operating Income (NOI)
-- Forecast multi-year property operating cash flows
-- Estimate terminal property value and net sale proceeds
+- Forecast multi-year property cash flows
+- Estimate terminal property value using exit capitalization rates
 - Calculate unlevered IRR, NPV, and investment multiples
+- Compare projected returns against required return thresholds
 
-### 3. Investment Sensitivity Analysis
+### 3. Debt Financing & DCF Analysis
 
-- Evaluate different annual NOI growth assumptions
-- Analyze changes in exit capitalization rates
-- Generate a two-variable IRR sensitivity matrix
-- Compare investment returns across market scenarios
-- Evaluate results against a required return threshold
+Developed a modular Python-based debt financing and discounted
+cash flow model to evaluate acquisition returns under different
+capital structures.
 
-### 4. Interactive Streamlit Dashboard
+Features include:
 
-- Select among five hypothetical Arizona BFR properties
-- Adjust acquisition price and underwriting assumptions
-- View financial KPIs and interactive Plotly charts
-- Explore cash flow projections and sensitivity heatmaps
-- Download investment cash flow schedules as CSV files
+- Loan-to-value (LTV) financing assumptions
+- Fixed-rate mortgage amortization schedules
+- Annual interest and principal repayment calculations
+- Capital expenditure (CapEx) forecasting
+- Acquisition closing costs and loan origination fees
+- Levered and unlevered cash flow projections
+- Equity IRR and NPV calculations
+- Equity multiple and remaining loan balance
+- Debt Service Coverage Ratio (DSCR)
+- Terminal property valuation and equity sale proceeds
 
-### 5. SQL Financial Analytics
+The model separates property-level investment performance
+from equity-level returns after financing.
 
-- Create a SQLite database from property-level data
-- Perform property screening and aggregation queries
-- Use Common Table Expressions (CTEs) for financial calculations
-- Calculate NOI and capitalization rates directly in SQL
-- Generate acquisition and portfolio-level summaries
+### 4. Interest Rate Sensitivity & Financing Risk
+
+- Simulate borrowing rates around selected assumptions
+- Compare levered versus unlevered IRR
+- Analyze the relationship between interest rates and DSCR
+- Assess financing risk using an illustrative 1.25x DSCR threshold
+- Evaluate equity NPV against the required equity return
+- Generate automated financing risk assessments
+- Export sensitivity analysis results to CSV
+
+### 5. Interactive Investment Dashboard
+
+Built using Streamlit and Plotly with four main modules:
+
+1. Cash Flow Analysis
+2. Sensitivity Analysis
+3. Investment Summary
+4. Debt Financing & DCF
+
+Users can adjust acquisition and financing assumptions,
+view interactive charts, and download financial schedules.
 
 ---
 
-## Financial Methodology
+## Financial Modeling Methodology
 
 ### Property Operating Performance
 
@@ -104,9 +134,13 @@ sensitivity analysis to support data-driven decision-making.
 
 **Going-In Capitalization Rate**
 
-    Annual NOI / Acquisition Price
+    Year 1 NOI / Acquisition Price
 
-### Investment Valuation
+### Discounted Cash Flow Analysis
+
+**Unlevered Operating Cash Flow**
+
+    NOI - Capital Expenditures
 
 **Terminal Property Value**
 
@@ -116,29 +150,78 @@ sensitivity analysis to support data-driven decision-making.
 
     Terminal Property Value × (1 - Selling Cost Rate)
 
-**Internal Rate of Return (IRR)**
-
-The annualized discount rate at which the net present value
-of the projected investment cash flows equals zero.
-
 **Net Present Value (NPV)**
 
-The present value of projected investment cash flows
-discounted at the selected required rate of return.
+    NPV = Sum[CF_t / (1 + r)^t]
 
-**Investment Multiple**
+The model forecasts annual property cash flows and estimates
+terminal property value using the following year's NOI.
 
-    Total Positive Cash Flows / Initial Investment
+Unlevered cash flows include the initial acquisition investment,
+annual operating cash flow after CapEx, and net sale proceeds.
 
-The current model calculates simplified unlevered investment
-returns using annual NOI as a proxy for operating cash flow.
+### Debt Financing Model
+
+**Initial Loan Amount**
+
+    Acquisition Price × LTV
+
+**Initial Equity Investment**
+
+    Acquisition Price - Loan Amount
+    + Acquisition Closing Costs
+    + Loan Origination Fees
+
+**Annual Debt Service**
+
+    Interest Payments + Principal Repayments
+
+**Annual Levered Operating Cash Flow**
+
+    NOI - CapEx - Debt Service
+
+**Equity Sale Proceeds**
+
+    Net Sale Proceeds - Outstanding Loan Balance
+
+**Debt Service Coverage Ratio (DSCR)**
+
+    NOI / Annual Debt Service
+
+The model uses monthly amortization calculations and
+aggregates debt payments into annual financial schedules.
+
+### Investment Return Metrics
+
+**Unlevered IRR**
+
+Measures investment returns before financing.
+
+**Levered IRR**
+
+Measures projected equity returns after debt financing.
+
+**Equity Multiple**
+
+    Total Positive Equity Cash Flows /
+    Total Equity Contributions
+
+**Equity NPV**
+
+Discounts projected equity cash flows using the selected
+required equity return.
+
+The dashboard allows users to compare property-level
+performance with equity-level investment returns.
 
 ---
 
-## Investment Screening Example
+## Investment Analysis Examples
 
-The initial acquisition screening model evaluates properties
-using the following hypothetical criteria:
+### Acquisition Screening
+
+The initial screening model evaluates hypothetical properties
+using the following criteria:
 
 | Investment Criteria | Requirement |
 |--------------------|-------------|
@@ -146,20 +229,58 @@ using the following hypothetical criteria:
 | Maximum Acquisition Price | $7,000,000 |
 | Maximum Vacancy Rate | 6.0% |
 
-### Screening Results
+Two of the five hypothetical properties satisfy these
+screening requirements.
 
 | Property | Acquisition Price | Annual NOI | Cap Rate |
 |----------|------------------:|-----------:|---------:|
-| Chandler | $6,500,000 | $530,841.60 | 8.17% |
-| Phoenix | $6,800,000 | $555,483.60 | 8.17% |
+| Chandler | $6,500,000 | $530,842 | 8.17% |
+| Phoenix | $6,800,000 | $555,484 | 8.17% |
 
-**Key Finding:** Two of the five hypothetical properties
-satisfy the screening criteria, representing a combined
-acquisition value of $13.3 million.
+The combined acquisition value of these qualifying
+properties is $13.3 million.
 
-Cap rates alone do not determine whether an investment
-should proceed. Multi-year returns, risk assumptions,
-and additional due diligence must also be considered.
+These results demonstrate preliminary acquisition screening,
+rather than a final investment recommendation.
+
+### Leveraged Investment Analysis
+
+In one illustrative acquisition scenario, the model produced:
+
+| Financial Metric | Projected Result |
+|------------------|-----------------:|
+| Unlevered IRR | 10.18% |
+| Levered IRR | 9.71% |
+| Equity Multiple | 1.54x |
+| Equity NPV | -$233,414 |
+| Minimum DSCR | 1.73x |
+
+### Key Investment Insights
+
+**1. Leverage does not always improve returns.**
+
+In this scenario, projected levered IRR is lower than
+unlevered IRR, indicating that financing reduces the
+expected percentage return on invested equity.
+
+**2. Debt coverage and investment profitability are different.**
+
+The property generates sufficient projected NOI to cover
+annual debt service, but equity NPV remains negative at
+the selected required equity return.
+
+**3. Financing assumptions materially affect equity returns.**
+
+The interest rate sensitivity model demonstrates how
+higher borrowing costs can reduce levered IRR and DSCR.
+
+**4. Investment decisions require multiple financial metrics.**
+
+IRR alone does not capture debt coverage, capital
+requirements, financing risks, or investor return hurdles.
+
+All figures are illustrative and depend on the selected
+underwriting assumptions.
 
 ---
 
@@ -167,39 +288,41 @@ and additional due diligence must also be considered.
 
 ```text
 real-estate-acquisition-analytics/
-|
-|-- .streamlit/
-|   |-- config.toml
-|
-|-- assets/
-|   |-- dashboard_overview.png
-|
-|-- dashboard/
-|   |-- app.py
-|
-|-- data/
-|   |-- properties.csv
-|   |-- qualified_acquisitions.csv
-|   |-- tempe_cash_flow_forecast.csv
-|   |-- exit_cap_sensitivity.csv
-|   |-- two_variable_sensitivity.csv
-|
-|-- sql/
-|   |-- 01_property_analysis.sql
-|
-|-- src/
-|   |-- 01_explore_properties.py
-|   |-- 02_create_database.py
-|   |-- 03_run_sql.py
-|   |-- 04_cash_flow_forecast.py
-|   |-- 05_sensitivity_analysis.py
-|   |-- 06_two_variable_sensitivity.py
-|   |-- 07_test_financial_model.py
-|   |-- financial_model.py
-|
-|-- .gitignore
-|-- README.md
-|-- requirements.txt
+│
+├── .streamlit/
+│   └── config.toml
+│
+├── assets/
+│   └── dashboard_overview.png
+│
+├── dashboard/
+│   └── app.py
+│
+├── data/
+│   ├── properties.csv
+│   ├── qualified_acquisitions.csv
+│   ├── tempe_cash_flow_forecast.csv
+│   ├── exit_cap_sensitivity.csv
+│   └── two_variable_sensitivity.csv
+│
+├── sql/
+│   └── 01_property_analysis.sql
+│
+├── src/
+│   ├── 01_explore_properties.py
+│   ├── 02_create_database.py
+│   ├── 03_run_sql.py
+│   ├── 04_cash_flow_forecast.py
+│   ├── 05_sensitivity_analysis.py
+│   ├── 06_two_variable_sensitivity.py
+│   ├── 07_test_financial_model.py
+│   ├── financial_model.py
+│   └── debt_model.py
+│
+├── test_financing.py
+├── requirements.txt
+├── .gitignore
+└── README.md
 ```
 
 ---
@@ -226,13 +349,19 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-### 4. Launch the Dashboard
+### 4. Test the Financing Model
+
+```bash
+python test_financing.py
+```
+
+### 5. Launch the Dashboard
 
 ```bash
 python -m streamlit run dashboard/app.py
 ```
 
-Open the local URL displayed in the terminal.
+Open the local URL displayed in your terminal.
 
 ---
 
@@ -241,12 +370,13 @@ Open the local URL displayed in the terminal.
 | Category | Technologies / Skills |
 |----------|----------------------|
 | Programming | Python, SQL |
-| Data Analysis | Pandas, data cleaning, aggregation |
-| Database | SQLite, CTEs, SQL financial calculations |
-| Financial Modeling | NOI, cap rate, IRR, NPV, investment multiples |
-| Risk Analysis | Scenario analysis, exit cap sensitivity |
-| Visualization | Streamlit, Plotly, interactive heatmaps |
-| Development | Git, GitHub, reusable Python functions |
+| Data Analysis | Pandas, financial data analysis |
+| Database | SQLite, SQL queries, CTEs |
+| Financial Modeling | DCF, IRR, NPV, NOI, cap rates |
+| Debt Financing | LTV, amortization, DSCR, equity returns |
+| Risk Analytics | Sensitivity analysis, scenario evaluation |
+| Visualization | Streamlit, Plotly, interactive charts |
+| Development | Git, GitHub, modular Python functions |
 
 ---
 
@@ -255,26 +385,39 @@ Open the local URL displayed in the terminal.
 This project uses synthetic Arizona real estate data
 created for educational and portfolio demonstration purposes.
 
-The current underwriting model:
+The financial model:
 
-- Assumes simplified annual NOI growth
-- Uses forward NOI to estimate terminal property value
-- Incorporates selling costs at exit
-- Calculates unlevered investment returns
-- Does not model debt financing or investor-level leverage
-- Excludes capital expenditures, acquisition closing costs,
-  income taxes, and other property-specific adjustments
+- Assumes annual NOI growth based on user inputs
+- Uses forward NOI and exit cap rate for terminal valuation
+- Models fixed-rate, fully amortizing debt
+- Calculates monthly debt payments and annual summaries
+- Includes capital expenditures and selected transaction fees
+- Assumes debt repayment upon property sale
+- Excludes income taxes, refinancing, and additional reserves
+- Does not independently forecast local real estate markets
+- Uses simplified assumptions rather than property-specific
+  lease-level underwriting
 
-The results are illustrative and should not be interpreted
-as investment recommendations.
+The original acquisition screening module uses NOI as
+a simplified proxy for annual unlevered operating cash flow.
 
-No confidential employer data is included.
+The expanded DCF module deducts capital expenditures
+and relevant transaction costs, which can produce different
+return metrics from the screening module.
+
+The 1.25x DSCR threshold is illustrative rather than
+a universal lending requirement.
+
+Results are hypothetical and do not constitute
+investment recommendations.
+
+No confidential employer information is included.
 
 ---
 
 ## Live Application
 
-**[Open the Real Estate Acquisition & IRR Analytics Dashboard](https://real-estate-irr-analytics.streamlit.app/)**
+**[Launch the Real Estate Investment Analytics Dashboard](https://real-estate-irr-analytics.streamlit.app/)**
 
 ---
 
@@ -282,6 +425,6 @@ No confidential employer data is included.
 
 **Lucia Lin**
 
-Financial Analytics | Python | SQL | Investment Modeling
+Financial Analytics | Python | SQL | DCF Modeling | Investment Analytics
 
-[GitHub](https://github.com/lucialin024)
+[GitHub Profile](https://github.com/lucialin024)
