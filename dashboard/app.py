@@ -1,4 +1,3 @@
-
 """
 Real Estate Acquisition & IRR Analytics Dashboard
 
@@ -10,6 +9,7 @@ Dataset: Synthetic Arizona Build-for-Rent properties.
 """
 
 import sys
+from html import escape
 from pathlib import Path
 
 import pandas as pd
@@ -22,8 +22,8 @@ import streamlit as st
 # ============================================================
 
 st.set_page_config(
-    page_title="Real Estate Investment Analytics",
-    page_icon="🏢",
+    page_title="BFR Underwriting",
+    page_icon=":material/home_work:",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -38,42 +38,308 @@ from src.financial_model import (
 
 
 # ============================================================
-# 2. DESIGN SETTINGS
+# 2. DESIGN SYSTEM
+# Graphite neutrals, one terracotta accent.
+# The accent marks the one figure that matters on each view.
+# Dashed lines are reserved for hurdles and thresholds.
 # ============================================================
 
-TEAL = "#36C4A0"
-BLUE = "#638BFF"
-ORANGE = "#E5A365"
-BACKGROUND = "#0B1220"
-TEXT = "#E8EEF5"
+BG = "#141415"
+CARD = "#19191b"
+RAISED = "#232325"
+GRID = "rgba(237, 237, 237, 0.06)"
+AXIS = "rgba(237, 237, 237, 0.16)"
+TEXT_1 = "#ededed"
+TEXT_2 = "#a1a1a6"
+TEXT_3 = "#85858b"
+NEUTRAL = "#6b6b70"
+NEUTRAL_DEEP = "#3f3f44"
+ACCENT = "#d9774e"
+ACCENT_DEEP = "#9e4f30"
+POSITIVE = "#4cc38a"
+NEGATIVE = "#e5484d"
+
+SANS = "'IBM Plex Sans', system-ui, sans-serif"
+MONO = "'IBM Plex Mono', ui-monospace, monospace"
+
+SELLING_COST_RATE = 0.02
+DSCR_THRESHOLD = 1.25  # Illustrative underwriting threshold
 
 st.markdown(
     """
-    <style>
-        .block-container {
-            padding-top: 2rem;
-            padding-bottom: 3rem;
-            max-width: 1450px;
-        }
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
 
-        div[data-testid="stMetric"] {
-            background-color: #162235;
-            border: 1px solid #293A51;
-            border-radius: 12px;
-            padding: 18px;
-        }
+.stApp, .stApp *:not([data-testid="stIconMaterial"]) {
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+}
+.block-container {
+    padding-top: 64px;
+    padding-bottom: 48px;
+    max-width: 1440px;
+}
+.stApp h1 {
+    font-size: 28px !important;
+    font-weight: 500 !important;
+    line-height: 1.15 !important;
+    letter-spacing: -0.01em;
+    padding: 0 !important;
+}
+.stApp h3 {
+    font-size: 18px !important;
+    font-weight: 500 !important;
+    line-height: 1.3 !important;
+    padding: 16px 0 0 !important;
+}
+[data-testid="stSidebar"] {
+    background-color: #0f0f10;
+    border-right: 1px solid rgba(237, 237, 237, 0.08);
+}
+[data-testid="stCaptionContainer"] { color: #85858b; }
+[data-baseweb="tab-list"] {
+    gap: 24px;
+    border-bottom: 1px solid rgba(237, 237, 237, 0.08);
+}
+[data-baseweb="tab"] { font-size: 14px; }
+.stApp button { transition: background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1); }
 
-        div[data-testid="stMetricLabel"] {
-            color: #A7B8CD;
-        }
+.stApp .uw-meta {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 12px;
+    line-height: 16px;
+    color: #85858b;
+    margin-top: 4px;
+}
 
-        div[data-testid="stMetricValue"] {
-            color: #F3F7FC;
-        }
-    </style>
+/* Verdict: the one figure that decides the deal */
+.stApp .uw-verdict {
+    display: grid;
+    grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+    background: #19191b;
+    border: 1px solid rgba(237, 237, 237, 0.08);
+    border-radius: 16px;
+    overflow: hidden;
+    margin: 16px 0 8px;
+}
+.stApp .uw-verdict-main {
+    padding: 24px 32px 24px 24px;
+    border-right: 1px solid rgba(237, 237, 237, 0.08);
+}
+.stApp .uw-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    line-height: 20px;
+    color: #a1a1a6;
+}
+.stApp .uw-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    flex: none;
+}
+.stApp .uw-figure {
+    font-size: 56px;
+    line-height: 1.04;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    color: #ededed;
+    font-variant-numeric: tabular-nums;
+    margin-top: 12px;
+}
+.stApp .uw-gap {
+    font-size: 14px;
+    line-height: 20px;
+    color: #a1a1a6;
+    margin-top: 8px;
+    font-variant-numeric: tabular-nums;
+}
+.stApp .uw-bar {
+    position: relative;
+    height: 8px;
+    border-radius: 4px;
+    background: #232325;
+    margin: 32px 0 32px;
+}
+.stApp .uw-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    border-radius: 4px;
+}
+.stApp .uw-hurdle {
+    position: absolute;
+    top: -8px;
+    bottom: -8px;
+    border-left: 1px dashed #a1a1a6;
+}
+.stApp .uw-hurdle-label {
+    position: absolute;
+    top: 28px;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 12px;
+    line-height: 16px;
+    color: #85858b;
+}
+
+/* Fact grids: hairlines come from a 1px gap over the hairline color */
+.stApp .uw-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    gap: 1px;
+    background: rgba(237, 237, 237, 0.08);
+}
+.stApp .uw-card {
+    border: 1px solid rgba(237, 237, 237, 0.08);
+    border-radius: 14px;
+    overflow: hidden;
+    margin: 8px 0 8px;
+}
+.stApp .uw-verdict .uw-grid { height: 100%; }
+.stApp .uw-fact {
+    background: #19191b;
+    padding: 20px 24px;
+}
+.stApp .uw-label {
+    font-size: 13px;
+    line-height: 20px;
+    color: #a1a1a6;
+}
+.stApp .uw-value {
+    font-size: 22px;
+    white-space: nowrap;
+    line-height: 1.1;
+    font-weight: 500;
+    color: #ededed;
+    font-variant-numeric: tabular-nums;
+    margin-top: 8px;
+}
+.stApp .uw-note {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 12px;
+    line-height: 16px;
+    color: #85858b;
+    margin-top: 8px;
+}
+
+/* Financing check rows */
+.stApp .uw-checks {
+    background: #19191b;
+    border: 1px solid rgba(237, 237, 237, 0.08);
+    border-radius: 14px;
+    overflow: hidden;
+    margin: 8px 0;
+}
+.stApp .uw-check {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    font-size: 14px;
+    line-height: 20px;
+    color: #ededed;
+    font-variant-numeric: tabular-nums;
+}
+.stApp .uw-check + .uw-check { border-top: 1px solid rgba(237, 237, 237, 0.08); }
+
+@media (max-width: 960px) {
+    .stApp .uw-verdict { grid-template-columns: 1fr; }
+    .stApp .uw-verdict-main {
+        border-right: 0;
+        border-bottom: 1px solid rgba(237, 237, 237, 0.08);
+    }
+    .stApp .uw-figure { font-size: 44px; }
+    .stApp .uw-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+</style>
     """,
     unsafe_allow_html=True,
 )
+
+
+# ------------------------------------------------------------
+# Formatting and rendering helpers
+# ------------------------------------------------------------
+
+def money(value):
+    """Whole dollars everywhere, with a leading minus for outflows."""
+    if pd.isna(value):
+        return "N/A"
+    return f"\u2212${abs(value):,.0f}" if value < 0 else f"${value:,.0f}"
+
+
+def pp(value):
+    """Signed percentage-point change with a true minus sign."""
+    return f"{value:+.2f} pp".replace("-", "\u2212")
+
+
+def html(markup):
+    st.markdown(markup, unsafe_allow_html=True)
+
+
+def fact(label, value, note=None, accent=False):
+    color = ACCENT if accent else TEXT_1
+    note_html = (
+        f'<div class="uw-note">{escape(note)}</div>' if note else ""
+    )
+    return (
+        f'<div class="uw-fact">'
+        f'<div class="uw-label">{escape(label)}</div>'
+        f'<div class="uw-value" style="color:{color}">{escape(value)}</div>'
+        f"{note_html}</div>"
+    )
+
+
+def fact_grid(cells, cols, card=True):
+    grid = (
+        f'<div class="uw-grid" style="--cols:{cols}">'
+        f'{"".join(cells)}</div>'
+    )
+    return f'<div class="uw-card">{grid}</div>' if card else grid
+
+
+def style_chart(fig, height, x_title=None, y_title=None):
+    axis = dict(
+        gridcolor=GRID,
+        zerolinecolor=AXIS,
+        linecolor=GRID,
+        tickfont=dict(family=MONO, size=12, color=TEXT_3),
+        title_font=dict(size=12, color=TEXT_3),
+    )
+    fig.update_layout(
+        template="plotly_dark",
+        paper_bgcolor=BG,
+        plot_bgcolor=BG,
+        font=dict(family=SANS, size=13, color=TEXT_2),
+        height=height,
+        margin=dict(l=8, r=8, t=40, b=8),
+        xaxis_title=x_title,
+        yaxis_title=y_title,
+        legend=dict(
+            orientation="h",
+            x=0,
+            y=1.02,
+            yanchor="bottom",
+            bgcolor="rgba(0,0,0,0)",
+            font=dict(size=13, color=TEXT_2),
+        ),
+        hoverlabel=dict(
+            bgcolor=RAISED,
+            bordercolor="#2e2e31",
+            font=dict(family=MONO, size=12, color=TEXT_1),
+        ),
+    )
+    fig.update_xaxes(**axis)
+    fig.update_yaxes(**axis)
+    return fig
+
+
+def show_chart(fig):
+    st.plotly_chart(fig, width="stretch", theme=None)
 
 
 # ============================================================
@@ -96,12 +362,11 @@ df = load_properties()
 
 with st.sidebar:
 
-    st.title("Investment Studio")
-    st.caption("BUILD-FOR-RENT | UNDERWRITING")
-    st.divider()
+    st.title("Underwriting")
+    st.caption("Arizona build-for-rent")
 
     selected_property = st.selectbox(
-        "Investment Opportunity",
+        "Property",
         df["property_id"].tolist(),
         format_func=lambda property_id: (
             f"{df.loc[df['property_id'] == property_id, 'city'].iloc[0]}"
@@ -113,10 +378,10 @@ with st.sidebar:
         df["property_id"] == selected_property
     ].iloc[0]
 
-    st.subheader("Underwriting Assumptions")
+    st.subheader("Assumptions")
 
     acquisition_price = st.number_input(
-        "Acquisition Price ($)",
+        "Acquisition price ($)",
         min_value=100_000.0,
         value=float(property_data["acquisition_price"]),
         step=50_000.0,
@@ -124,49 +389,46 @@ with st.sidebar:
     )
 
     noi_growth_rate = st.slider(
-        "Annual NOI Growth (%)",
+        "Annual NOI growth (%)",
         0.0, 8.0, 3.0, 0.5
     ) / 100
 
     exit_cap_rate = st.slider(
-        "Exit Cap Rate (%)",
+        "Exit cap rate (%)",
         5.0, 10.0, 7.5, 0.25
     ) / 100
 
     holding_period = st.slider(
-        "Holding Period (Years)",
+        "Holding period (years)",
         3, 10, 5
     )
 
     required_return = st.slider(
-        "Required Return (%)",
+        "Required return (%)",
         5.0, 20.0, 10.0, 0.5
     ) / 100
 
-    st.divider()
-
-    # New financing assumptions
     with st.expander(
-        "Debt Financing & DCF Inputs",
+        "Debt and DCF inputs",
         expanded=False
     ):
 
         st.caption(
-            "Adjust financing and capital expenditure assumptions."
+            "Financing, CapEx and closing costs"
         )
 
         ltv = st.slider(
-            "Loan-to-Value (%)",
+            "Loan-to-value (%)",
             0, 90, 70, 5
         ) / 100
 
         interest_rate = st.slider(
-            "Annual Interest Rate (%)",
+            "Annual interest rate (%)",
             0.0, 15.0, 6.5, 0.25
         ) / 100
 
         amortization_years = st.number_input(
-            "Amortization Period (Years)",
+            "Amortization period (years)",
             min_value=1,
             max_value=40,
             value=30,
@@ -174,36 +436,35 @@ with st.sidebar:
         )
 
         annual_capex = st.number_input(
-            "Year 1 Annual CapEx ($)",
+            "Year 1 CapEx ($)",
             min_value=0.0,
             value=25_000.0,
             step=5_000.0,
+            format="%.0f",
         )
 
         capex_growth_rate = st.slider(
-            "Annual CapEx Growth (%)",
+            "Annual CapEx growth (%)",
             0.0, 10.0, 2.0, 0.5
         ) / 100
 
         acquisition_cost_rate = st.slider(
-            "Acquisition Closing Costs (%)",
+            "Acquisition closing costs (%)",
             0.0, 10.0, 1.0, 0.25
         ) / 100
 
         loan_fee_rate = st.slider(
-            "Loan Origination Fees (%)",
+            "Loan origination fees (%)",
             0.0, 5.0, 1.0, 0.25
         ) / 100
 
         equity_discount_rate = st.slider(
-            "Required Equity Return (%)",
+            "Required equity return (%)",
             5.0, 30.0, 12.0, 0.5
         ) / 100
 
-    st.divider()
-
     st.caption(
-        "Educational model using synthetic property data."
+        "Synthetic property data, for educational use"
     )
 
 
@@ -234,7 +495,7 @@ going_in_cap_rate = year_1_noi / acquisition_price
 # 6. INVESTMENT RETURN CALCULATIONS
 # ============================================================
 
-# Original unlevered screening model
+# Unlevered screening model
 results = calculate_investment_returns(
     acquisition_price=acquisition_price,
     year_1_noi=year_1_noi,
@@ -247,24 +508,36 @@ results = calculate_investment_returns(
 meets_hurdle = results["irr"] >= required_return
 
 
-# New leveraged DCF model
-levered_results = calculate_levered_returns(
-    acquisition_price=acquisition_price,
-    year_1_noi=year_1_noi,
-    noi_growth_rate=noi_growth_rate,
-    exit_cap_rate=exit_cap_rate,
-    ltv=ltv,
-    interest_rate=interest_rate,
-    amortization_years=int(amortization_years),
-    holding_period=holding_period,
-    annual_capex=annual_capex,
-    capex_growth_rate=capex_growth_rate,
-    selling_cost_rate=0.02,
-    acquisition_cost_rate=acquisition_cost_rate,
-    loan_fee_rate=loan_fee_rate,
-    unlevered_discount_rate=required_return,
-    equity_discount_rate=equity_discount_rate,
-)
+def run_levered(rate):
+    return calculate_levered_returns(
+        acquisition_price=acquisition_price,
+        year_1_noi=year_1_noi,
+        noi_growth_rate=noi_growth_rate,
+        exit_cap_rate=exit_cap_rate,
+        ltv=ltv,
+        interest_rate=rate,
+        amortization_years=int(amortization_years),
+        holding_period=holding_period,
+        annual_capex=annual_capex,
+        capex_growth_rate=capex_growth_rate,
+        selling_cost_rate=SELLING_COST_RATE,
+        acquisition_cost_rate=acquisition_cost_rate,
+        loan_fee_rate=loan_fee_rate,
+        unlevered_discount_rate=required_return,
+        equity_discount_rate=equity_discount_rate,
+    )
+
+
+def min_dscr(annual_results):
+    frame = pd.DataFrame(annual_results)
+    debt_years = frame.loc[frame["debt_service"] > 0, "dscr"]
+    return debt_years.min() if not debt_years.empty else None
+
+
+# Leveraged DCF model
+levered_results = run_levered(interest_rate)
+annual = pd.DataFrame(levered_results["annual_results"])
+minimum_dscr = min_dscr(levered_results["annual_results"])
 
 
 # ============================================================
@@ -278,7 +551,7 @@ annual_noi = [
 
 cash_flow_df = pd.DataFrame({
     "Year": range(holding_period + 1),
-    "Cash Flow": results["cash_flows"],
+    "Cash flow": results["cash_flows"],
 })
 
 operating_cash_flows = [0] + annual_noi
@@ -290,98 +563,82 @@ sale_cash_flows = (
 
 
 # ============================================================
-# 8. DASHBOARD HEADER
+# 8. HEADER AND VERDICT
 # ============================================================
 
-st.caption(
-    "INVESTMENT ANALYTICS / ACQUISITION UNDERWRITING"
+st.title(f"{property_data['city']} build-for-rent")
+
+html(
+    f'<div class="uw-meta">{escape(str(selected_property))} · '
+    f'{int(property_data["units"])} units · '
+    f"{holding_period}-year hold · "
+    f"{exit_cap_rate:.2%} exit cap</div>"
 )
 
-st.title("Real Estate Investment Dashboard")
+irr = results["irr"]
+gap_pp = (irr - required_return) * 100
+scale_max = max(required_return, irr, 0.01) * 1.4
+fill_pct = min(max(irr, 0) / scale_max, 1) * 100
+hurdle_pct = required_return / scale_max * 100
+lead_color = ACCENT if meets_hurdle else NEUTRAL
+gap_color = POSITIVE if gap_pp >= 0 else NEGATIVE
+status_text = "clears hurdle" if meets_hurdle else "below hurdle"
 
-st.write(
-    "Analyze acquisition opportunities, forecast "
-    "investment performance, and evaluate financial risk."
+verdict_facts = fact_grid(
+    [
+        fact(
+            "NPV",
+            money(results["npv"]),
+            f"at {required_return:.1%} discount rate",
+        ),
+        fact(
+            "Investment multiple",
+            f"{results['investment_multiple']:.2f}x",
+        ),
+        fact(
+            "Exit value",
+            money(results["exit_value"]),
+            f"at {exit_cap_rate:.2%} exit cap",
+        ),
+        fact("Acquisition price", money(acquisition_price)),
+        fact("Year 1 NOI", money(year_1_noi)),
+        fact("Going-in cap rate", f"{going_in_cap_rate:.2%}"),
+    ],
+    cols=3,
+    card=False,
 )
 
-st.divider()
-
-header_left, header_right = st.columns([3, 1])
-
-with header_left:
-    st.subheader(
-        f"{property_data['city']} | Build-for-Rent"
-    )
-
-    st.caption(
-        f"Property ID: {selected_property} | "
-        f"{int(property_data['units'])} Rental Units | "
-        f"{holding_period}-Year Holding Period"
-    )
-
-with header_right:
-    if meets_hurdle:
-        st.success("Meets Return Hurdle")
-    else:
-        st.warning("Below Return Hurdle")
-
-
-# ============================================================
-# 9. INVESTMENT PERFORMANCE
-# ============================================================
-
-st.subheader("Investment Performance")
-
-col1, col2, col3 = st.columns(3)
-
-col1.metric(
-    "Projected Unlevered IRR",
-    f"{results['irr']:.2%}",
-    delta=(
-        f"{(results['irr'] - required_return) * 100:+.2f} pp"
-        " vs. required return"
-    ),
+html(
+    '<div class="uw-verdict">'
+    '<div class="uw-verdict-main">'
+    '<div class="uw-status">'
+    f'<span class="uw-dot" style="background:{lead_color}"></span>'
+    f"Unlevered IRR · {escape(status_text)}</div>"
+    f'<div class="uw-figure">{irr:.2%}</div>'
+    '<div class="uw-gap">'
+    f'<span style="color:{gap_color}">{pp(gap_pp)}</span>'
+    " vs required return</div>"
+    '<div class="uw-bar">'
+    f'<div class="uw-fill" style="width:{fill_pct:.1f}%;'
+    f'background:{lead_color}"></div>'
+    f'<div class="uw-hurdle" style="left:{hurdle_pct:.1f}%">'
+    f'<span class="uw-hurdle-label">Hurdle {required_return:.1%}</span>'
+    "</div></div>"
+    "</div>"
+    f"{verdict_facts}"
+    "</div>"
 )
-
-col2.metric(
-    f"NPV @ {required_return:.1%}",
-    f"${results['npv']:,.0f}",
-)
-
-col3.metric(
-    "Investment Multiple",
-    f"{results['investment_multiple']:.2f}x",
-)
-
-col4, col5, col6 = st.columns(3)
-
-col4.metric(
-    "Acquisition Price",
-    f"${acquisition_price / 1_000_000:.2f}M",
-)
-
-col5.metric(
-    "Year 1 NOI",
-    f"${year_1_noi:,.0f}",
-)
-
-col6.metric(
-    "Going-In Cap Rate",
-    f"{going_in_cap_rate:.2%}",
-)
-
-st.divider()
 
 
 # ============================================================
-# 10. DASHBOARD NAVIGATION
+# 9. DASHBOARD NAVIGATION
 # ============================================================
 
 tab1, tab2, tab3, tab4 = st.tabs([
-    "Cash Flow Analysis",
-    "Sensitivity Analysis",
-    "Investment Summary",
-    "Debt Financing & DCF",
+    "Cash flows",
+    "Sensitivity",
+    "Summary",
+    "Debt and DCF",
 ])
 
 
@@ -391,74 +648,61 @@ tab1, tab2, tab3, tab4 = st.tabs([
 
 with tab1:
 
-    st.subheader("Projected Investment Cash Flows")
+    st.subheader("Projected cash flows")
 
     st.caption(
-        "Operating cash flows, acquisition investment, "
-        "and terminal sale proceeds."
+        "Purchase in year 0, operating NOI each year, "
+        "and net sale proceeds at exit"
     )
 
     cash_flow_chart = go.Figure()
 
     cash_flow_chart.add_bar(
         x=cash_flow_df["Year"],
+        y=[-acquisition_price] + [0] * holding_period,
+        name="Acquisition",
+        marker_color=NEUTRAL_DEEP,
+        hovertemplate="Year %{x}<br>Acquisition %{y:$,.0f}<extra></extra>",
+    )
+
+    cash_flow_chart.add_bar(
+        x=cash_flow_df["Year"],
         y=operating_cash_flows,
         name="Operating NOI",
-        marker_color=TEAL,
+        marker_color=NEUTRAL,
+        hovertemplate="Year %{x}<br>NOI %{y:$,.0f}<extra></extra>",
     )
 
     cash_flow_chart.add_bar(
         x=cash_flow_df["Year"],
         y=sale_cash_flows,
-        name="Net Sale Proceeds",
-        marker_color=BLUE,
+        name="Net sale proceeds",
+        marker_color=ACCENT,
+        hovertemplate="Year %{x}<br>Sale %{y:$,.0f}<extra></extra>",
     )
 
-    cash_flow_chart.add_bar(
-        x=[0],
-        y=[-acquisition_price],
-        name="Acquisition Investment",
-        marker_color=ORANGE,
-    )
+    style_chart(cash_flow_chart, 360, "Year", None)
+    cash_flow_chart.update_layout(barmode="relative", bargap=0.4)
+    cash_flow_chart.update_traces(marker_line_width=0)
+    cash_flow_chart.update_xaxes(dtick=1, showgrid=False, zeroline=False)
+    cash_flow_chart.update_yaxes(tickformat="$~s")
 
-    cash_flow_chart.update_layout(
-        barmode="relative",
-        template="plotly_dark",
-        paper_bgcolor=BACKGROUND,
-        plot_bgcolor=BACKGROUND,
-        font_color=TEXT,
-        height=430,
-        xaxis_title="Investment Year",
-        yaxis_title="Cash Flow ($)",
-        legend=dict(
-            orientation="h",
-            y=-0.25,
-        ),
-    )
+    show_chart(cash_flow_chart)
 
-    cash_flow_chart.update_xaxes(dtick=1)
-
-    st.plotly_chart(
-        cash_flow_chart,
-        width="stretch",
-        theme=None,
-    )
-
-    st.subheader("Investment Cash Flow Schedule")
+    st.subheader("Cash flow schedule")
 
     st.dataframe(
-        cash_flow_df.style.format({
-            "Cash Flow": "${:,.2f}"
-        }),
+        cash_flow_df.style.format({"Cash flow": money}),
         width="stretch",
         hide_index=True,
     )
 
     st.download_button(
-        "Download Cash Flow CSV",
+        "Download cash flows (CSV)",
         data=cash_flow_df.to_csv(index=False),
         file_name=f"{selected_property}_cash_flows.csv",
         mime="text/csv",
+        icon=":material/download:",
     )
 
 
@@ -468,11 +712,12 @@ with tab1:
 
 with tab2:
 
-    st.subheader("IRR Sensitivity Matrix")
+    st.subheader("IRR by NOI growth and exit cap rate")
 
     st.caption(
-        "Analyze how NOI growth and exit capitalization "
-        "rates impact projected investment IRR."
+        f"Shaded cells clear the {required_return:.1%} required "
+        "return. The dashed line is the hurdle and the outlined "
+        "cell is your current case."
     )
 
     growth_rates = [
@@ -499,8 +744,8 @@ with tab2:
             )
 
             sensitivity_results.append({
-                "NOI Growth": f"{growth:.1%}",
-                "Exit Cap Rate": f"{cap:.1%}",
+                "NOI growth": growth,
+                "Exit cap rate": cap,
                 "IRR": scenario["irr"],
             })
 
@@ -509,51 +754,112 @@ with tab2:
     )
 
     sensitivity_matrix = sensitivity_df.pivot(
-        index="NOI Growth",
-        columns="Exit Cap Rate",
+        index="NOI growth",
+        columns="Exit cap rate",
         values="IRR",
     )
 
-    heatmap = go.Figure(
-        data=go.Heatmap(
-            z=sensitivity_matrix.values * 100,
-            x=sensitivity_matrix.columns.tolist(),
-            y=sensitivity_matrix.index.tolist(),
+    x_values = [cap * 100 for cap in sensitivity_matrix.columns]
+    y_values = [growth * 100 for growth in sensitivity_matrix.index]
+    gap_to_hurdle = (sensitivity_matrix.values - required_return) * 100
+
+    # Cells below the hurdle stay neutral, cells above it shade
+    # toward terracotta, with the break exactly at the hurdle.
+    z_low = min(gap_to_hurdle.min(), -0.01)
+    z_high = max(gap_to_hurdle.max(), 0.01)
+    hurdle_at = -z_low / (z_high - z_low)
+    hurdle_colorscale = [
+        [0.0, "#161617"],
+        [hurdle_at, "#2a2a2d"],
+        [min(hurdle_at + 0.001, 1.0), "#5a3022"],
+        [1.0, ACCENT_DEEP],
+    ]
+
+    heatmap = go.Figure()
+
+    heatmap.add_trace(
+        go.Heatmap(
+            z=gap_to_hurdle,
+            x=x_values,
+            y=y_values,
             text=[
                 [f"{value:.2%}" for value in row]
                 for row in sensitivity_matrix.values
             ],
             texttemplate="%{text}",
-            colorscale=[
-                [0.0, "#B85C5C"],
-                [0.5, "#243D54"],
-                [1.0, TEAL],
-            ],
+            textfont=dict(family=MONO, size=13, color=TEXT_1),
+            colorscale=hurdle_colorscale,
+            zmin=z_low,
+            zmax=z_high,
+            xgap=2,
+            ygap=2,
             showscale=False,
+            hovertemplate=(
+                "Exit cap %{x:.1f}%<br>"
+                "NOI growth %{y:.1f}%<br>"
+                "IRR %{text}<extra></extra>"
+            ),
+            showlegend=False,
         )
     )
 
-    heatmap.update_layout(
-        template="plotly_dark",
-        paper_bgcolor=BACKGROUND,
-        plot_bgcolor=BACKGROUND,
-        font_color=TEXT,
-        height=430,
-        xaxis_title="Exit Cap Rate",
-        yaxis_title="Annual NOI Growth",
+    heatmap.add_trace(
+        go.Contour(
+            z=gap_to_hurdle,
+            x=x_values,
+            y=y_values,
+            autocontour=False,
+            contours=dict(start=0, end=0, size=1, coloring="none"),
+            line=dict(color=TEXT_1, width=1.5, dash="dash"),
+            showscale=False,
+            hoverinfo="skip",
+            name=f"{required_return:.1%} hurdle",
+            showlegend=True,
+        )
     )
 
-    st.plotly_chart(
-        heatmap,
-        width="stretch",
-        theme=None,
+    if (
+        growth_rates[0] <= noi_growth_rate <= growth_rates[-1]
+        and exit_cap_rates[0] <= exit_cap_rate <= exit_cap_rates[-1]
+    ):
+        heatmap.add_shape(
+            type="rect",
+            x0=exit_cap_rate * 100 - 0.23,
+            x1=exit_cap_rate * 100 + 0.23,
+            y0=noi_growth_rate * 100 - 0.46,
+            y1=noi_growth_rate * 100 + 0.46,
+            line=dict(color=TEXT_1, width=1.5),
+            layer="above",
+        )
+
+    style_chart(heatmap, 480, "Exit cap rate", "Annual NOI growth")
+    heatmap.update_xaxes(
+        tickvals=x_values,
+        ticktext=[f"{cap:.1%}" for cap in sensitivity_matrix.columns],
+        showgrid=False,
+        zeroline=False,
+    )
+    heatmap.update_yaxes(
+        tickvals=y_values,
+        ticktext=[f"{growth:.1%}" for growth in sensitivity_matrix.index],
+        showgrid=False,
+        zeroline=False,
     )
 
-    st.subheader("Sensitivity Data")
+    show_chart(heatmap)
+
+    st.subheader("Sensitivity data")
 
     formatted_matrix = sensitivity_matrix.map(
         lambda value: f"{value:.2%}"
     )
+    formatted_matrix.index = [
+        f"{growth:.1%}" for growth in sensitivity_matrix.index
+    ]
+    formatted_matrix.columns = [
+        f"{cap:.1%}" for cap in sensitivity_matrix.columns
+    ]
+    formatted_matrix.index.name = "NOI growth / exit cap"
 
     st.dataframe(
         formatted_matrix,
@@ -567,53 +873,47 @@ with tab2:
 
 with tab3:
 
-    st.subheader("Investment Decision Summary")
+    st.subheader("Decision summary")
 
-    if meets_hurdle:
-        st.success(
-            "The selected acquisition meets the "
-            "required return under current assumptions."
-        )
-    else:
-        st.warning(
-            "The selected acquisition falls below the "
-            "required return under current assumptions."
-        )
+    verdict_sentence = (
+        "clears" if meets_hurdle else "falls short of"
+    )
 
     st.write(
         f"The **{property_data['city']}** acquisition "
         f"has a projected unlevered IRR of "
-        f"**{results['irr']:.2%}**, compared with a "
-        f"required return of **{required_return:.2%}**."
+        f"**{results['irr']:.2%}**, which {verdict_sentence} "
+        f"the required return of **{required_return:.2%}** "
+        f"by {abs(gap_pp):.2f} percentage points."
     )
 
     st.write(
-        f"The property has an estimated exit value of "
-        f"**${results['exit_value']:,.0f}**, "
+        f"The estimated exit value is "
+        f"**{money(results['exit_value'])}**, "
         f"based on an exit cap rate of "
         f"**{exit_cap_rate:.2%}**."
     )
 
-    st.subheader("Key Underwriting Assumptions")
+    st.subheader("Key assumptions")
 
     assumptions_df = pd.DataFrame({
         "Assumption": [
-            "Acquisition Price",
+            "Acquisition price",
             "Year 1 NOI",
-            "Annual NOI Growth",
-            "Exit Cap Rate",
-            "Holding Period",
-            "Required Return",
-            "Selling Cost Rate",
+            "Annual NOI growth",
+            "Exit cap rate",
+            "Holding period",
+            "Required return",
+            "Selling costs",
         ],
         "Value": [
-            f"${acquisition_price:,.0f}",
-            f"${year_1_noi:,.0f}",
+            money(acquisition_price),
+            money(year_1_noi),
             f"{noi_growth_rate:.2%}",
             f"{exit_cap_rate:.2%}",
             f"{holding_period} years",
             f"{required_return:.2%}",
-            "2.00%",
+            f"{SELLING_COST_RATE:.2%}",
         ],
     })
 
@@ -623,9 +923,9 @@ with tab3:
         hide_index=True,
     )
 
-    st.info(
-        "This is a preliminary investment screening "
-        "result, not an investment recommendation."
+    st.caption(
+        "Preliminary screening result, not an "
+        "investment recommendation"
     )
 
 
@@ -635,97 +935,76 @@ with tab3:
 
 with tab4:
 
-    st.subheader(
-        "Debt Financing & Discounted Cash Flow"
-    )
+    st.subheader("Returns after debt")
 
     st.caption(
-        "Evaluate property-level and equity-level returns "
-        "after financing, capital expenditures, "
-        "closing costs, and debt repayment."
+        "Property and equity returns after financing, CapEx, "
+        "closing costs and loan repayment"
     )
 
     # --------------------------------------------------------
     # A. FINANCING METRICS
     # --------------------------------------------------------
 
-    st.subheader("Financing Overview")
+    levered_gap = (
+        levered_results["levered_irr"] - equity_discount_rate
+    ) * 100
 
-    a, b, c, d = st.columns(4)
-
-    a.metric(
-        "Loan Amount",
-        f"${levered_results['loan_amount']:,.0f}",
+    html(
+        fact_grid(
+            [
+                fact(
+                    "Levered IRR",
+                    f"{levered_results['levered_irr']:.2%}",
+                    f"{pp(levered_gap)} vs {equity_discount_rate:.1%} hurdle",
+                    accent=levered_gap >= 0,
+                ),
+                fact(
+                    "Equity multiple",
+                    f"{levered_results['equity_multiple']:.2f}x",
+                ),
+                fact(
+                    "Equity NPV",
+                    money(levered_results["levered_npv"]),
+                    f"at {equity_discount_rate:.1%}",
+                ),
+                fact(
+                    "Minimum annual DSCR",
+                    (
+                        f"{minimum_dscr:.2f}x"
+                        if minimum_dscr is not None
+                        else "N/A"
+                    ),
+                    f"vs {DSCR_THRESHOLD:.2f}x threshold",
+                ),
+                fact(
+                    "Loan amount",
+                    money(levered_results["loan_amount"]),
+                    f"{ltv:.0%} LTV at {interest_rate:.2%}",
+                ),
+                fact(
+                    "Initial equity",
+                    money(levered_results["initial_equity"]),
+                ),
+                fact(
+                    "Unlevered IRR",
+                    f"{levered_results['unlevered_irr']:.2%}",
+                    "after CapEx and closing costs",
+                ),
+                fact(
+                    "Remaining debt at exit",
+                    money(levered_results["remaining_loan_balance"]),
+                ),
+            ],
+            cols=4,
+        )
     )
-
-    b.metric(
-        "Initial Equity",
-        f"${levered_results['initial_equity']:,.0f}",
-    )
-
-    c.metric(
-        "Unlevered IRR (After CapEx)",
-        f"{levered_results['unlevered_irr']:.2%}",
-    )
-
-    d.metric(
-        "Levered IRR",
-        f"{levered_results['levered_irr']:.2%}",
-    )
-
-    e, f, g, h = st.columns(4)
-
-    e.metric(
-        "Equity Multiple",
-        f"{levered_results['equity_multiple']:.2f}x",
-    )
-
-    f.metric(
-        "Equity NPV",
-        f"${levered_results['levered_npv']:,.0f}",
-    )
-
-    g.metric(
-        "Remaining Debt at Exit",
-        f"${levered_results['remaining_loan_balance']:,.0f}",
-    )
-
-    annual = pd.DataFrame(
-        levered_results["annual_results"]
-    )
-
-    operating_dscr = annual.loc[
-        annual["debt_service"] > 0, "dscr"
-    ]
-
-    minimum_dscr = (
-        operating_dscr.min()
-        if not operating_dscr.empty
-        else None
-    )
-
-    h.metric(
-        "Minimum Annual DSCR",
-        (
-            f"{minimum_dscr:.2f}x"
-            if minimum_dscr is not None
-            else "N/A"
-        ),
-    )
-
-    st.info(
-        "The unlevered IRR in this tab deducts "
-        "capital expenditures and acquisition costs, "
-        "unlike the original simplified screening model."
-    )
-
-    st.divider()
 
     # --------------------------------------------------------
     # B. LEVERED VS UNLEVERED CASH FLOWS
     # --------------------------------------------------------
 
-    st.subheader("Investment Cash Flow Comparison")
+    st.subheader("Unlevered vs levered cash flows")
 
     years = list(range(holding_period + 1))
 
@@ -733,54 +1012,39 @@ with tab4:
 
     comparison_chart.add_trace(
         go.Bar(
-            name="Unlevered Cash Flow",
+            name="Unlevered",
             x=years,
             y=levered_results["unlevered_cash_flows"],
-            marker_color=TEAL,
+            marker_color=NEUTRAL,
+            hovertemplate="Year %{x}<br>Unlevered %{y:$,.0f}<extra></extra>",
         )
     )
 
     comparison_chart.add_trace(
         go.Bar(
-            name="Levered Equity Cash Flow",
+            name="Levered equity",
             x=years,
             y=levered_results["levered_cash_flows"],
-            marker_color=BLUE,
+            marker_color=ACCENT,
+            hovertemplate="Year %{x}<br>Levered %{y:$,.0f}<extra></extra>",
         )
     )
 
+    style_chart(comparison_chart, 340, "Year", None)
     comparison_chart.update_layout(
-        barmode="group",
-        template="plotly_dark",
-        paper_bgcolor=BACKGROUND,
-        plot_bgcolor=BACKGROUND,
-        font_color=TEXT,
-        height=430,
-        xaxis_title="Investment Year",
-        yaxis_title="Cash Flow ($)",
-        legend=dict(
-            orientation="h",
-            y=-0.25,
-        ),
+        barmode="group", bargap=0.35, bargroupgap=0.1
     )
+    comparison_chart.update_traces(marker_line_width=0)
+    comparison_chart.update_xaxes(dtick=1, showgrid=False, zeroline=False)
+    comparison_chart.update_yaxes(tickformat="$~s")
 
-    comparison_chart.update_xaxes(dtick=1)
-
-    st.plotly_chart(
-        comparison_chart,
-        width="stretch",
-        theme=None,
-    )
-
-    st.divider()
+    show_chart(comparison_chart)
 
     # --------------------------------------------------------
-    # C. FIVE-YEAR DCF AND DEBT SCHEDULE
+    # C. ANNUAL DCF AND DEBT SCHEDULE
     # --------------------------------------------------------
 
-    st.subheader(
-        "Annual Operating Cash Flow & Debt Schedule"
-    )
+    st.subheader("Operating cash flow and debt schedule")
 
     operating_table = annual.rename(
         columns={
@@ -789,11 +1053,11 @@ with tab4:
             "capex": "CapEx",
             "interest": "Interest",
             "principal": "Principal",
-            "debt_service": "Debt Service",
+            "debt_service": "Debt service",
             "dscr": "DSCR",
             "unlevered_cash_flow": "Unlevered CF",
             "levered_cash_flow": "Levered CF",
-            "ending_loan_balance": "Ending Loan Balance",
+            "ending_loan_balance": "Ending loan balance",
         }
     )
 
@@ -802,15 +1066,16 @@ with tab4:
         "CapEx",
         "Interest",
         "Principal",
-        "Debt Service",
+        "Debt service",
         "Unlevered CF",
         "Levered CF",
-        "Ending Loan Balance",
+        "Ending loan balance",
     ]
 
     format_columns = {
-        col: "${:,.0f}"
+        col: money
         for col in money_columns
+        if col in operating_table.columns
     }
 
     format_columns["DSCR"] = "{:.2f}x"
@@ -825,89 +1090,87 @@ with tab4:
     )
 
     st.caption(
-        "Annual operating cash flows exclude sale proceeds. "
-        "The schedule below includes the terminal sale "
-        "and outstanding loan repayment."
+        "Operating cash flows exclude sale proceeds. "
+        "The schedule below adds the sale and loan payoff."
     )
 
     # --------------------------------------------------------
     # D. COMPLETE INVESTMENT CASH FLOWS
     # --------------------------------------------------------
 
-    st.subheader("DCF Investment Cash Flow Schedule")
+    st.subheader("DCF cash flow schedule")
 
     investment_cash_flows = pd.DataFrame({
         "Year": years,
-        "Unlevered Investment CF":
+        "Unlevered CF":
             levered_results["unlevered_cash_flows"],
-        "Levered Equity CF":
+        "Levered equity CF":
             levered_results["levered_cash_flows"],
     })
 
     st.dataframe(
         investment_cash_flows.style.format({
-            "Unlevered Investment CF": "${:,.0f}",
-            "Levered Equity CF": "${:,.0f}",
+            "Unlevered CF": money,
+            "Levered equity CF": money,
         }),
         width="stretch",
         hide_index=True,
     )
 
     st.download_button(
-        "Download Detailed DCF Schedule (CSV)",
+        "Download DCF schedule (CSV)",
         data=operating_table.to_csv(index=False),
         file_name=f"{selected_property}_debt_dcf.csv",
         mime="text/csv",
+        icon=":material/download:",
     )
-
-    st.divider()
 
     # --------------------------------------------------------
     # E. TERMINAL VALUATION
     # --------------------------------------------------------
 
-    st.subheader("Exit Valuation & Equity Proceeds")
+    st.subheader("Exit valuation")
 
-    x1, x2, x3 = st.columns(3)
-
-    x1.metric(
-        "Gross Property Exit Value",
-        f"${levered_results['exit_value']:,.0f}",
-    )
-
-    x2.metric(
-        "Net Sale Proceeds",
-        f"${levered_results['net_sale_proceeds']:,.0f}",
-    )
-
-    x3.metric(
-        "Equity Sale Proceeds",
-        f"${levered_results['equity_sale_proceeds']:,.0f}",
+    html(
+        fact_grid(
+            [
+                fact(
+                    "Gross exit value",
+                    money(levered_results["exit_value"]),
+                    f"forward NOI at {exit_cap_rate:.2%} cap",
+                ),
+                fact(
+                    "Net sale proceeds",
+                    money(levered_results["net_sale_proceeds"]),
+                    f"after {SELLING_COST_RATE:.0%} selling costs",
+                ),
+                fact(
+                    "Equity sale proceeds",
+                    money(levered_results["equity_sale_proceeds"]),
+                    "after loan payoff",
+                ),
+            ],
+            cols=3,
+        )
     )
 
     st.caption(
-        "Model assumptions: Fixed-rate amortizing debt, "
-        "monthly loan payments, growing annual NOI and CapEx, "
-        "terminal valuation using forward NOI and exit cap rate, "
-        "and 2% selling costs. Excludes taxes, refinancing, "
-        "and additional reserves."
+        "Fixed-rate amortizing debt with monthly payments, "
+        "growing NOI and CapEx, exit on forward NOI. "
+        "Excludes taxes, refinancing and reserves."
     )
-
 
     # ========================================================
     # F. INTEREST RATE SENSITIVITY ANALYSIS
     # ========================================================
 
-    st.divider()
-
-    st.subheader("Interest Rate Sensitivity Analysis")
+    st.subheader("Interest rate sensitivity")
 
     st.caption(
-        "Evaluate how changes in borrowing costs affect "
-        "leveraged investment returns and debt coverage."
+        "How borrowing costs move levered returns and debt coverage"
     )
 
-    # Generate interest rates around the selected assumption
+    # Interest rates around the selected assumption
     rate_changes = [
         -0.03, -0.025, -0.02, -0.015, -0.01,
         -0.005, 0, 0.005, 0.01, 0.015,
@@ -923,47 +1186,19 @@ with tab4:
 
     for scenario_rate in sensitivity_rates:
 
-        scenario_results = calculate_levered_returns(
-            acquisition_price=acquisition_price,
-            year_1_noi=year_1_noi,
-            noi_growth_rate=noi_growth_rate,
-            exit_cap_rate=exit_cap_rate,
-            ltv=ltv,
-            interest_rate=scenario_rate,
-            amortization_years=int(amortization_years),
-            holding_period=holding_period,
-            annual_capex=annual_capex,
-            capex_growth_rate=capex_growth_rate,
-            selling_cost_rate=0.02,
-            acquisition_cost_rate=acquisition_cost_rate,
-            loan_fee_rate=loan_fee_rate,
-            unlevered_discount_rate=required_return,
-            equity_discount_rate=equity_discount_rate,
-        )
-
-        scenario_annual = pd.DataFrame(
-            scenario_results["annual_results"]
-        )
-
-        debt_years = scenario_annual[
-            scenario_annual["debt_service"] > 0
-        ]
-
-        scenario_min_dscr = (
-            debt_years["dscr"].min()
-            if not debt_years.empty
-            else None
-        )
+        scenario_results = run_levered(scenario_rate)
 
         interest_sensitivity.append({
-            "Interest Rate": scenario_rate * 100,
+            "Interest rate": scenario_rate * 100,
             "Levered IRR": (
                 scenario_results["levered_irr"] * 100
             ),
             "Unlevered IRR": (
                 scenario_results["unlevered_irr"] * 100
             ),
-            "Minimum DSCR": scenario_min_dscr,
+            "Minimum DSCR": min_dscr(
+                scenario_results["annual_results"]
+            ),
             "Equity NPV": scenario_results["levered_npv"],
         })
 
@@ -973,166 +1208,150 @@ with tab4:
     # CHART 1 — INTEREST RATE VS INVESTMENT IRR
     # --------------------------------------------------------
 
-    st.subheader("Borrowing Costs vs. Investment Returns")
-
     irr_chart = go.Figure()
 
     irr_chart.add_trace(
         go.Scatter(
-            x=interest_df["Interest Rate"],
-            y=interest_df["Levered IRR"],
-            mode="lines+markers",
-            name="Levered IRR",
-            line=dict(color=TEAL, width=3),
-            hovertemplate=(
-                "Interest Rate: %{x:.2f}%<br>"
-                "Levered IRR: %{y:.2f}%"
-                "<extra></extra>"
-            ),
+            x=interest_df["Interest rate"],
+            y=interest_df["Unlevered IRR"],
+            mode="lines",
+            name="Unlevered IRR",
+            line=dict(color=NEUTRAL, width=2),
+            hovertemplate="Unlevered %{y:.2f}%<extra></extra>",
         )
     )
 
     irr_chart.add_trace(
         go.Scatter(
-            x=interest_df["Interest Rate"],
-            y=interest_df["Unlevered IRR"],
-            mode="lines",
-            name="Unlevered IRR",
-            line=dict(
-                color=BLUE,
-                width=2,
-                dash="dash"
-            ),
-            hovertemplate=(
-                "Interest Rate: %{x:.2f}%<br>"
-                "Unlevered IRR: %{y:.2f}%"
-                "<extra></extra>"
-            ),
+            x=interest_df["Interest rate"],
+            y=interest_df["Levered IRR"],
+            mode="lines+markers",
+            name="Levered IRR",
+            line=dict(color=ACCENT, width=2.5),
+            marker=dict(size=6),
+            hovertemplate="Levered %{y:.2f}%<extra></extra>",
         )
+    )
+
+    irr_chart.add_hline(
+        y=equity_discount_rate * 100,
+        line_dash="dash",
+        line_width=1,
+        line_color=TEXT_2,
+        annotation_text=f"Equity hurdle {equity_discount_rate:.1%}",
+        annotation_position="bottom right",
+        annotation_font=dict(family=MONO, size=12, color=TEXT_3),
     )
 
     irr_chart.add_vline(
         x=interest_rate * 100,
         line_dash="dot",
-        line_color=ORANGE,
-        annotation_text="Current Rate",
+        line_width=1,
+        line_color=TEXT_3,
+        annotation_text=f"Current {interest_rate:.2%}",
         annotation_position="top right",
+        annotation_font=dict(family=MONO, size=12, color=TEXT_3),
     )
 
-    irr_chart.update_layout(
-        template="plotly_dark",
-        paper_bgcolor=BACKGROUND,
-        plot_bgcolor=BACKGROUND,
-        font_color=TEXT,
-        height=440,
-        xaxis_title="Annual Interest Rate (%)",
-        yaxis_title="Projected IRR (%)",
-        legend=dict(
-            orientation="h",
-            y=-0.25,
-        ),
-        hovermode="x unified",
-    )
+    style_chart(irr_chart, 360, "Annual interest rate", "Projected IRR")
+    irr_chart.update_layout(hovermode="x unified")
+    irr_chart.update_xaxes(ticksuffix="%", showgrid=False, zeroline=False)
+    irr_chart.update_yaxes(ticksuffix="%")
 
-    st.plotly_chart(
-        irr_chart,
-        width="stretch",
-        theme=None,
-    )
+    st.markdown("**Borrowing cost vs returns**")
+    show_chart(irr_chart)
 
     # --------------------------------------------------------
     # CHART 2 — INTEREST RATE VS DSCR
     # --------------------------------------------------------
 
-    st.subheader("Interest Rate vs. Debt Coverage")
-
-    st.caption(
-        "Debt Service Coverage Ratio measures the "
-        "property's NOI relative to required debt payments."
-    )
-
     dscr_chart = go.Figure()
 
     dscr_chart.add_trace(
         go.Scatter(
-            x=interest_df["Interest Rate"],
+            x=interest_df["Interest rate"],
             y=interest_df["Minimum DSCR"],
             mode="lines+markers",
             name="Minimum DSCR",
-            line=dict(color=TEAL, width=3),
+            line=dict(color=ACCENT, width=2.5),
+            marker=dict(size=6),
             hovertemplate=(
-                "Interest Rate: %{x:.2f}%<br>"
-                "Minimum DSCR: %{y:.2f}x"
+                "Rate %{x:.2f}%<br>"
+                "Minimum DSCR %{y:.2f}x"
                 "<extra></extra>"
             ),
+            showlegend=False,
         )
     )
 
-    # Illustrative underwriting threshold
-    dscr_threshold = 1.25
-
     dscr_chart.add_hline(
-        y=dscr_threshold,
+        y=DSCR_THRESHOLD,
         line_dash="dash",
-        line_color=ORANGE,
-        annotation_text="Illustrative 1.25x Threshold",
-        annotation_position="top right",
+        line_width=1,
+        line_color=TEXT_2,
+        annotation_text=f"Illustrative {DSCR_THRESHOLD:.2f}x threshold",
+        annotation_position="top left",
+        annotation_font=dict(family=MONO, size=12, color=TEXT_3),
     )
 
     dscr_chart.add_vline(
         x=interest_rate * 100,
         line_dash="dot",
-        line_color=BLUE,
+        line_width=1,
+        line_color=TEXT_3,
+        annotation_text=f"Current {interest_rate:.2%}",
+        annotation_position="top right",
+        annotation_font=dict(family=MONO, size=12, color=TEXT_3),
     )
 
-    dscr_chart.update_layout(
-        template="plotly_dark",
-        paper_bgcolor=BACKGROUND,
-        plot_bgcolor=BACKGROUND,
-        font_color=TEXT,
-        height=400,
-        xaxis_title="Annual Interest Rate (%)",
-        yaxis_title="Minimum Annual DSCR (x)",
+    style_chart(
+        dscr_chart, 300, "Annual interest rate", "Minimum annual DSCR"
     )
+    dscr_chart.update_xaxes(ticksuffix="%", showgrid=False, zeroline=False)
+    dscr_chart.update_yaxes(ticksuffix="x")
 
-    st.plotly_chart(
-        dscr_chart,
-        width="stretch",
-        theme=None,
+    st.markdown("**Borrowing cost vs debt coverage**")
+    st.caption(
+        "Debt service coverage is NOI divided by "
+        "required debt payments"
     )
+    show_chart(dscr_chart)
 
     # --------------------------------------------------------
     # SENSITIVITY RESULTS TABLE
     # --------------------------------------------------------
 
-    st.subheader("Interest Rate Sensitivity Table")
+    st.subheader("Sensitivity table")
 
     st.dataframe(
         interest_df.style.format({
-            "Interest Rate": "{:.2f}%",
+            "Interest rate": "{:.2f}%",
             "Levered IRR": "{:.2f}%",
             "Unlevered IRR": "{:.2f}%",
             "Minimum DSCR": "{:.2f}x",
-            "Equity NPV": "${:,.0f}",
+            "Equity NPV": money,
         }, na_rep="N/A"),
         width="stretch",
         hide_index=True,
     )
 
     st.download_button(
-        "Download Interest Rate Sensitivity CSV",
+        "Download rate sensitivity (CSV)",
         data=interest_df.to_csv(index=False),
         file_name=(
             f"{selected_property}_interest_sensitivity.csv"
         ),
         mime="text/csv",
+        icon=":material/download:",
     )
 
     # --------------------------------------------------------
-    # AUTOMATIC FINANCING INSIGHT
+    # FINANCING CHECK
     # --------------------------------------------------------
 
-    st.subheader("Financing Risk Assessment")
+    st.subheader("Financing check")
+
+    checks = []
 
     irr_difference = (
         levered_results["levered_irr"]
@@ -1140,73 +1359,72 @@ with tab4:
     ) * 100
 
     if irr_difference > 0:
-        st.success(
-            f"Financing increases projected IRR by "
-            f"{irr_difference:.2f} percentage points."
-        )
+        checks.append((
+            POSITIVE,
+            f"Leverage adds {irr_difference:.2f} pp to IRR",
+        ))
     elif irr_difference < 0:
-        st.warning(
-            f"Financing decreases projected IRR by "
-            f"{abs(irr_difference):.2f} percentage points."
-        )
+        checks.append((
+            NEGATIVE,
+            f"Leverage costs {abs(irr_difference):.2f} pp of IRR",
+        ))
     else:
-        st.info(
-            "Levered and unlevered IRRs are equal "
-            "under current assumptions."
-        )
+        checks.append((
+            TEXT_3,
+            "Levered and unlevered IRR are equal",
+        ))
 
     if minimum_dscr is None:
-        st.info(
-            "No debt service is required under "
-            "the selected financing assumptions."
-        )
-    elif minimum_dscr < dscr_threshold:
-        st.warning(
-            f"Minimum DSCR is {minimum_dscr:.2f}x, "
-            f"below the illustrative "
-            f"{dscr_threshold:.2f}x threshold."
-        )
+        checks.append((TEXT_3, "No debt service at these assumptions"))
+    elif minimum_dscr < DSCR_THRESHOLD:
+        checks.append((
+            NEGATIVE,
+            f"Minimum DSCR {minimum_dscr:.2f}x, below the "
+            f"illustrative {DSCR_THRESHOLD:.2f}x threshold",
+        ))
     else:
-        st.success(
-            f"Minimum DSCR is {minimum_dscr:.2f}x, "
-            f"above the illustrative "
-            f"{dscr_threshold:.2f}x threshold."
-        )
+        checks.append((
+            POSITIVE,
+            f"Minimum DSCR {minimum_dscr:.2f}x, above the "
+            f"illustrative {DSCR_THRESHOLD:.2f}x threshold",
+        ))
 
     if levered_results["levered_npv"] < 0:
-        st.warning(
-            "Equity NPV is negative at the selected "
-            "required equity return."
-        )
+        checks.append((
+            NEGATIVE,
+            f"Equity NPV is negative at {equity_discount_rate:.1%}",
+        ))
     else:
-        st.success(
-            "Equity NPV is non-negative at the "
-            "selected required equity return."
-        )
+        checks.append((
+            POSITIVE,
+            f"Equity NPV is positive at {equity_discount_rate:.1%}",
+        ))
 
-    st.caption(
-        "Sensitivity analysis assumes fixed-rate, "
-        "fully amortizing financing. Each scenario "
-        "models a different loan origination rate, "
-        "not a floating-rate loan. The 1.25x DSCR "
-        "benchmark is illustrative, not a universal "
-        "lending requirement."
+    html(
+        '<div class="uw-checks">'
+        + "".join(
+            '<div class="uw-check">'
+            f'<span class="uw-dot" style="background:{color}"></span>'
+            f"{escape(text)}</div>"
+            for color, text in checks
+        )
+        + "</div>"
     )
 
-# ============================================================
-# 11. FOOTER
-# ============================================================
+    st.caption(
+        "Each scenario is a different fixed rate at origination, "
+        "not a floating-rate loan. The 1.25x DSCR benchmark is "
+        "illustrative, not a universal lending requirement."
+    )
 
-st.divider()
+
+# ============================================================
+# 10. FOOTER
+# ============================================================
 
 st.caption(
-    "REAL ESTATE INVESTMENT ANALYTICS | "
-    "Python · SQL · Pandas · Streamlit · Plotly"
-)
-
-st.caption(
-    "Educational project using synthetic Arizona "
-    "property data. Original screening uses simplified "
-    "unlevered cash flows. The DCF module incorporates "
-    "CapEx, financing, loan repayments, and fees."
+    "Synthetic Arizona property data, for educational use. "
+    "The screening IRR uses simplified unlevered cash flows; "
+    "the Debt and DCF tab adds CapEx, financing, fees and "
+    "loan repayment."
 )
